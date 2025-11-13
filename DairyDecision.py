@@ -18,7 +18,17 @@ import requests
 from bs4 import BeautifulSoup
 
 # ---------- UI ----------
+
 import streamlit as st
+st.markdown("""
+<style>
+  .main { padding-left: 1rem; padding-right: 1rem; }
+  .stTabs { overflow-x: auto; }
+  section[data-testid="stSidebar"] .css-1d391kg { width: 280px; }
+  .block-container { padding-top: 1rem; padding-bottom: 1rem; }
+  div[data-testid="stDataFrame"] { overflow: auto; }
+</style>
+""", unsafe_allow_html=True)
 
 # ---------- Maps (Leaflet over OpenStreetMap) ----------
 import folium
@@ -133,6 +143,7 @@ TRENDS = [
 # 2) DATA (Synthetic + Upload)
 # =============================================================================
 
+@st.cache_data
 def create_demo_plants() -> pd.DataFrame:
     return pd.DataFrame([
         # Plant A — Cork/Mallow
@@ -165,6 +176,7 @@ def create_demo_plants() -> pd.DataFrame:
              lat=52.25, lon=-7.11, county="Waterford"),
     ])
 
+@st.cache_data
 def create_demo_farms(n=1200, seed=42):
     rng = np.random.default_rng(seed)
     counties = {
@@ -495,7 +507,7 @@ def farms_network_map(df_farms, county_choice="All"):
                       popup=f"<b>{name} Port</b>").add_to(m)
 
     folium.LayerControl().add_to(m)
-    st_folium(m, use_container_width=True, height=650)
+    st_folium(m, width="stretch", height=650)
 
 def plants_options_map(df_ranked, score_col):
     if not {"lat","lon"}.issubset(df_ranked.columns):
@@ -514,7 +526,7 @@ def plants_options_map(df_ranked, score_col):
         folium.CircleMarker(location=[r["lat"], r["lon"]], radius=radius, color="blue",
                             fill=True, fill_opacity=0.7,
                             popup=folium.Popup(popup, max_width=280)).add_to(m)
-    st_folium(m, use_container_width=True, height=520)
+    st_folium(m, width="stretch", height=520)
 
 
 # =============================================================================
@@ -636,6 +648,7 @@ def build_pdf(summary: str) -> bytes:
 # =============================================================================
 
 def main():
+    st.sidebar.button("Minimize Sidebar")
     st.set_page_config(page_title="Irish Dairy Decision Intelligence — Full Build", layout="wide")
     cfg = load_config()
     logger.info("App start")
@@ -657,7 +670,7 @@ def main():
     # ---------- LANDSCAPE ----------
     with tabs[0]:
         st.subheader("Decision-Making Tools & Models (Ireland) — Consensus Landscape")
-        st.dataframe(consensus_landscape_df(), use_container_width=True, hide_index=True)
+        st.dataframe(consensus_landscape_df(), width="stretch", hide_index=True)
         st.markdown("**Trends & Research Directions**")
         for t in TRENDS: st.markdown(f"- {t}")
         st.caption("Figure 1. Overview of decision-making tools in the Irish dairy processing industry. "
@@ -672,11 +685,11 @@ def main():
         else:
             up = st.file_uploader("Upload CSV with plant options + indicators", type=["csv"])
             if up is None: st.stop()
-            df_plants = pd.read_csv(up)
+            df_plants = pd.read_csv(up, low_memory=False)
 
         missing = [c for c in INDICATORS if c not in df_plants.columns]
         if missing: st.error(f"Missing columns: {missing}"); st.stop()
-        st.dataframe(df_plants, use_container_width=True)
+        st.dataframe(df_plants, width="stretch")
 
         st.subheader("2. Scenario & Weights")
         scen = st.selectbox("Scenario", list(SCENARIO_WEIGHTS.keys())+["Custom"], index=2)
@@ -696,8 +709,8 @@ def main():
 
         score_col = f"score_{scenario_name}"
         st.subheader("3. Ranked Options")
-        st.dataframe(df_ranked[["option_id","plant","strategy",score_col,"county"]], use_container_width=True)
-        st.bar_chart(df_ranked.set_index("option_id")[score_col])
+        st.dataframe(df_ranked[["option_id","plant","strategy",score_col,"county"]], width="stretch")
+        st.bar_chart(df_ranked.set_index("option_id")[score_col], width="stretch")
 
         st.subheader("4. Option Explanation")
         opt = st.selectbox("Select option", df_ranked["option_id"])
@@ -724,7 +737,7 @@ def main():
         else:
             fup = st.file_uploader("Upload farm CSV (lat, lon, county, herd_size, milk_yield_l_per_day, coop)", type=["csv"])
             if fup is None: st.stop()
-            farms = pd.read_csv(fup)
+            farms = pd.read_csv(fup, low_memory=False)
         counties = ["All"] + sorted(farms["county"].dropna().astype(str).unique())
         county_choice = st.selectbox("Filter by county", counties, index=0)
         farms_network_map(farms, county_choice)
@@ -744,12 +757,12 @@ def main():
             engine = DecisionEngine(df_ranked)
             _, dfq, summary = engine.run_full("balanced", SCENARIO_WEIGHTS["balanced"])
             st.success("Simulation complete.")
-            st.dataframe(dfq.head(), use_container_width=True)
+            st.dataframe(dfq.head(), width="stretch")
 
             # Econometric Visuals
             charts = econometric_panels_and_graphs(dfq)
             for k, fig in charts.items():
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
 
             # Agentic explanation if available
             if "agentic_last_output" in st.session_state:
@@ -818,7 +831,7 @@ def main():
             {"Regulation": "GDPR", "Scope": "Personal data", "Focus": "Privacy, consent, rights", "Status": "No personal data ingested in demo"},
             {"Regulation": "Cybersecurity Act", "Scope": "ICT products/services", "Focus": "Security certification", "Status": "Out-of-scope (infrastructure)"},
         ]
-        st.dataframe(pd.DataFrame(regs), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(regs), width="stretch", hide_index=True)
         st.markdown(
             "- **Transparency**: MCDA + econometric pipeline and AI outputs are visible in the UI.\n"
             "- **Risk Management**: RL-Teacher audits, scenario simulations, uncertainty states.\n"
