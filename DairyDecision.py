@@ -48,13 +48,12 @@ except Exception:
 
 # ---------- OpenAI (Agentic RAG + RL) ----------
 try:
-    import openai
+    from openai import OpenAI
 except Exception:
-    openai = None
+    OpenAI = None
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if openai and OPENAI_API_KEY:
-    openai.api_key = OPENAI_API_KEY
+client = OpenAI(api_key=OPENAI_API_KEY) if (OpenAI and OPENAI_API_KEY) else None
 
 
 # =============================================================================
@@ -505,17 +504,18 @@ class KnowledgeEngine:
             return "[KE] No documents ingested."
         ranked = sorted(self.docs, key=lambda d: self._score(d["text"], prompt), reverse=True)
         ctx = "\n\n---\n\n".join(d["text"] for d in ranked[:5])
-        if not (openai and OPENAI_API_KEY):
-            return f"[Mocked RAG]\nContext:\n{ctx}\n\nAnswer (stub) to: {prompt}"
         try:
-            resp = openai.ChatCompletion.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": "You are a retrieval + reasoning engine for econometrics & EU regulation."},
-                    {"role": "user", "content": f"Context:\n{ctx}\n\nQuery:\n{prompt}"}
-                ]
-            )
-            return resp.choices[0].message.content.strip()
+            if client:
+                resp = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": "You are a retrieval + reasoning engine for econometrics & EU regulation."},
+                        {"role": "user", "content": f"Context:\n{ctx}\n\nQuery:\n{prompt}"}
+                    ]
+                )
+                return resp.choices[0].message.content
+            else:
+                return f"[Mocked RAG]\nContext:\n{ctx}\n\nAnswer (stub) to: {prompt}"
         except Exception as e:
             return f"[OpenAI error: {e}]"
 
@@ -550,15 +550,18 @@ class RLTeacher:
 
 class RLAdvisor:
     def advise(self, prompt: str) -> str:
-        if not (openai and OPENAI_API_KEY):
-            return f"[Advisor stub] Alternate perspective for: {prompt}"
         try:
-            r = openai.ChatCompletion.create(
-                model="gpt-4o",
-                messages=[{"role":"system","content":"Secondary advisory agent; provide alternative scenario framing."},
-                          {"role":"user","content":prompt}]
-            )
-            return r.choices[0].message.content.strip()
+            if client:
+                r = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": "Secondary advisory agent; provide alternative scenario framing."},
+                        {"role": "user", "content": prompt}
+                    ]
+                )
+                return r.choices[0].message.content
+            else:
+                return f"[Advisor stub] Alternate perspective for: {prompt}"
         except Exception as e:
             return f"[Advisor error: {e}]"
 
@@ -597,7 +600,7 @@ def main():
     cfg = load_config()
     logger.info("App start")
 
-    st.title("Irish Dairy Decision Intelligence — Prototype")
+    st.title("Irish Dairy Decision Intelligence — Full Intelligence Build")
     st.caption("MCDA • Econometrics • Quantum • Agentic Governance • EU AI Act • OSM Leaflet")
 
     tabs = st.tabs([
@@ -613,7 +616,7 @@ def main():
 
     # ---------- LANDSCAPE ----------
     with tabs[0]:
-        st.subheader("Decision-Making Tools & Models (Ireland)")
+        st.subheader("Decision-Making Tools & Models (Ireland) — Consensus Landscape")
         st.dataframe(consensus_landscape_df(), use_container_width=True, hide_index=True)
         st.markdown("**Trends & Research Directions**")
         for t in TRENDS: st.markdown(f"- {t}")
