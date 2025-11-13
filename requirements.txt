@@ -1,0 +1,39 @@
+# Core
+streamlit==1.36.0
+numpy==1.26.4
+pandas==2.2.2
+
+# Visualization
+folium==0.17.0
+streamlit-folium==0.20.0
+pydeck==0.9.1
+
+# Logging & Config
+loguru==0.7.2
+PyYAML==6.0.1
+
+# Econometrics
+linearmodels==5.3
+statsmodels==0.14.2
+
+# Explainability
+shap==0.44.0
+
+# AI / LLMs
+openai==1.35.3
+
+# PDF & Export
+reportlab==4.2.0
+
+# Optional: Mapping & Geo
+geopy==2.4.1
+
+# Optional: Storage & Vector Search (for advanced RAG)
+faiss-cpu==1.8.0
+chromadb==0.5.0
+
+# Utilities
+python-dotenv==1.0.1
+
+# Security
+cryptography==42.0.5
