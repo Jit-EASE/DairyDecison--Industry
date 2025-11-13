@@ -613,7 +613,7 @@ def main():
 
     # ---------- LANDSCAPE ----------
     with tabs[0]:
-        st.subheader("Decision-Making Tools & Models (Ireland) — Consensus Landscape")
+        st.subheader("Decision-Making Tools & Models (Ireland)")
         st.dataframe(consensus_landscape_df(), use_container_width=True, hide_index=True)
         st.markdown("**Trends & Research Directions**")
         for t in TRENDS: st.markdown(f"- {t}")
