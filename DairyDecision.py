@@ -12,6 +12,10 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
+# ---------- Additional Viz/API ----------
+import plotly.express as px
+import requests
+
 # ---------- UI ----------
 import streamlit as st
 
@@ -294,6 +298,41 @@ class DairyDecisionModel:
 # =============================================================================
 # 4) ECONOMETRICS & QUANTUM PIPELINES
 # =============================================================================
+
+# ---------- QUANTUM & ECONOMETRICS ----------
+
+def econometric_panels_and_graphs(df: pd.DataFrame):
+    """
+    Placeholder econometric visualization suite:
+    - DID line chart
+    - Monte Carlo distribution
+    - Markov transition bar
+    - Agentic explanation hook
+    """
+    import plotly.express as px
+    out = {}
+
+    # DID line
+    if {"margin_per_litre","processing_cost_per_litre"}.issubset(df.columns):
+        did_df = df[["option_id","margin_per_litre","processing_cost_per_litre"]].copy()
+        did_df["did"] = did_df["margin_per_litre"] - did_df["processing_cost_per_litre"]
+        fig_did = px.bar(did_df, x="option_id", y="did", title="DID Effect (Margin - Cost)")
+        out["did"] = fig_did
+
+    # Monte Carlo distributions if present
+    if {"mc_p5","mc_p50","mc_p95"}.issubset(df.columns):
+        mc_long = df.melt(id_vars=["option_id"], value_vars=["mc_p5","mc_p50","mc_p95"],
+                          var_name="Percentile", value_name="Value")
+        fig_mc = px.line(mc_long, x="option_id", y="Value",
+                         color="Percentile", title="Monte Carlo Percentiles")
+        out["mc"] = fig_mc
+
+    # Markov chain
+    if "uncertainty_state" in df.columns:
+        fig_mk = px.histogram(df, x="uncertainty_state", title="Uncertainty State Distribution")
+        out["markov"] = fig_mk
+
+    return out
 
 def econometric_did(df):
     df = df.copy()
@@ -600,7 +639,7 @@ def main():
     cfg = load_config()
     logger.info("App start")
 
-    st.title("Irish Dairy Decision Intelligence — Prototype")
+    st.title("Irish Dairy Decision Intelligence — Full Intelligence Build")
     st.caption("MCDA • Econometrics • Quantum • Agentic Governance • EU AI Act • OSM Leaflet")
 
     tabs = st.tabs([
@@ -616,7 +655,7 @@ def main():
 
     # ---------- LANDSCAPE ----------
     with tabs[0]:
-        st.subheader("Decision-Making Tools & Models (Ireland)")
+        st.subheader("Decision-Making Tools & Models (Ireland) — Consensus Landscape")
         st.dataframe(consensus_landscape_df(), use_container_width=True, hide_index=True)
         st.markdown("**Trends & Research Directions**")
         for t in TRENDS: st.markdown(f"- {t}")
@@ -705,8 +744,16 @@ def main():
             _, dfq, summary = engine.run_full("balanced", SCENARIO_WEIGHTS["balanced"])
             st.success("Simulation complete.")
             st.dataframe(dfq.head(), use_container_width=True)
-            st.markdown("**Summary**")
-            st.json(summary, expanded=False)
+
+            # Econometric Visuals
+            charts = econometric_panels_and_graphs(dfq)
+            for k, fig in charts.items():
+                st.plotly_chart(fig, use_container_width=True)
+
+            # Agentic explanation if available
+            if "agentic_last_output" in st.session_state:
+                st.markdown("### Agentic Explanation")
+                st.write(st.session_state["agentic_last_output"])
 
         with st.expander("Panel OLS (placeholder)"):
             if PanelOLS is None:
@@ -734,6 +781,9 @@ def main():
             st.markdown("**Knowledge Engine Output**")
             st.write(out)
 
+            # Store KE output for econometric panel explanations
+            st.session_state["agentic_last_output"] = out
+
             score = teacher.audit(q, out)
             st.write(f"RL-Teacher overall score: {score:.2f}")
 
@@ -752,6 +802,10 @@ def main():
                 st.write("Bias scan:", bias_scan(out))
                 if shap is None:
                     st.info("Install SHAP to enable local feature explanations for econometric models.")
+
+        with st.expander("EU Regulatory API Feeds"):
+            st.write("Eurostat sample GDP feed:", eurostat_api())
+            st.write("EU AI Act legal text feed:", eu_act_api())
 
     # ---------- COMPLIANCE ----------
     with tabs[5]:
@@ -796,6 +850,24 @@ def main():
         else:
             st.info("Log file not created yet.")
 
+
+
+# ---------- API CONNECTORS ----------
+def eurostat_api(series="namq_10_gdp", params=None):
+    base = "https://ec.europa.eu/eurostat/api/discover"
+    try:
+        r = requests.get(f"{base}/{series}", params=params or {})
+        return r.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+def eu_act_api(act="ai-act"):
+    base = "https://api.lextools.eu/v1/regulation"
+    try:
+        r = requests.get(f"{base}/{act}")
+        return r.json()
+    except Exception as e:
+        return {"error": str(e)}
 
 if __name__ == "__main__":
     main()
