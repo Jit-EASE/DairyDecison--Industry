@@ -853,19 +853,23 @@ def main():
 
 
 # ---------- API CONNECTORS ----------
-def eurostat_api(series="namq_10_gdp", params=None):
-    base = "https://ec.europa.eu/eurostat/api/discover"
+def eurostat_api(dataset_id="nama_10_gdp"):
+    url = f"https://ec.europa.eu/eurostat/api/discover/json?id={dataset_id}"
     try:
-        r = requests.get(f"{base}/{series}", params=params or {})
+        r = requests.get(url, timeout=10)
+        if r.status_code != 200:
+            return {"error": f"HTTP {r.status_code}"}
         return r.json()
     except Exception as e:
         return {"error": str(e)}
 
-def eu_act_api(act="ai-act"):
-    base = "https://api.lextools.eu/v1/regulation"
+def eu_act_api(celex="52021PC0206"):
+    url = f"https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:{celex}"
     try:
-        r = requests.get(f"{base}/{act}")
-        return r.json()
+        r = requests.get(url, timeout=10)
+        if r.status_code != 200:
+            return {"error": f"HTTP {r.status_code}"}
+        return {"html_snippet": r.text[:5000]}
     except Exception as e:
         return {"error": str(e)}
 
