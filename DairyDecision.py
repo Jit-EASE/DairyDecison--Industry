@@ -15,6 +15,7 @@ import pandas as pd
 # ---------- Additional Viz/API ----------
 import plotly.express as px
 import requests
+from bs4 import BeautifulSoup
 
 # ---------- UI ----------
 import streamlit as st
@@ -853,23 +854,66 @@ def main():
 
 
 # ---------- API CONNECTORS ----------
-def eurostat_api(dataset_id="nama_10_gdp"):
-    url = f"https://ec.europa.eu/eurostat/api/discover/json?id={dataset_id}"
+
+# ---------- SDMX PARSER (Eurostat GDP, Agriculture, Energy, Emissions) ----------
+import xml.etree.ElementTree as ET
+
+def eurostat_sdmx_to_df(xml_text: str):
+    """
+    Converts Eurostat SDMX XML into a tidy DataFrame.
+    """
     try:
-        r = requests.get(url, timeout=10)
+        root = ET.fromstring(xml_text)
+        ns = {'s': 'http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message',
+              'd': 'http://www.sdmx.org/resources/sdmxml/schemas/v2_1/data/generic'}
+
+        rows = []
+        for series in root.findall('.//d:Series', ns):
+            series_attrib = {c.attrib['id']: c.find('d:Value', ns).attrib.get('value')
+                             for c in series.findall('d:SeriesKey/d:Value', ns)}
+            for obs in series.findall('d:Obs', ns):
+                obs_time = obs.find('d:ObsDimension', ns).attrib.get('value')
+                obs_val = obs.find('d:ObsValue', ns).attrib.get('value')
+                row = series_attrib.copy()
+                row['time'] = obs_time
+                row['value'] = float(obs_val) if obs_val not in [None, ''] else None
+                rows.append(row)
+        return pd.DataFrame(rows)
+    except Exception as e:
+        return pd.DataFrame([{"error": str(e)}])
+
+def eurostat_api(dataset_id="nama_10_gdp"):
+    """
+    Fetches SDMX GDP dataset and returns parsed DataFrame as JSON-like dict.
+    """
+    url = f"https://ec.europa.eu/eurostat/api/discover/sdmx?dataset={dataset_id}"
+    try:
+        r = requests.get(url, timeout=15)
         if r.status_code != 200:
             return {"error": f"HTTP {r.status_code}"}
-        return r.json()
+        df = eurostat_sdmx_to_df(r.text)
+        return df.head(20).to_dict(orient="records")
     except Exception as e:
         return {"error": str(e)}
 
 def eu_act_api(celex="52021PC0206"):
+    """
+    Fetches EU Act raw HTML and extracts readable legal paragraphs.
+    """
     url = f"https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:{celex}"
     try:
-        r = requests.get(url, timeout=10)
+        r = requests.get(url, timeout=15)
         if r.status_code != 200:
             return {"error": f"HTTP {r.status_code}"}
-        return {"html_snippet": r.text[:5000]}
+
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(r.text, "html.parser")
+
+        # Extract only clean text paragraphs
+        paragraphs = [p.get_text(strip=True) for p in soup.find_all("p") if len(p.get_text(strip=True)) > 40]
+
+        cleaned = paragraphs[:40]  # return first 40 legal lines for UI
+        return {"legal_excerpt": cleaned}
     except Exception as e:
         return {"error": str(e)}
 
