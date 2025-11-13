@@ -3,6 +3,7 @@ streamlit
 numpy
 pandas
 plotly
+BeautifulSoup
 
 # Visualization
 folium
