@@ -597,7 +597,7 @@ def main():
     cfg = load_config()
     logger.info("App start")
 
-    st.title("Irish Dairy Decision Intelligence — Full Intelligence Build")
+    st.title("Irish Dairy Decision Intelligence — Prototype")
     st.caption("MCDA • Econometrics • Quantum • Agentic Governance • EU AI Act • OSM Leaflet")
 
     tabs = st.tabs([
