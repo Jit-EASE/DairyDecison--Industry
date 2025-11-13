@@ -22,11 +22,264 @@ from bs4 import BeautifulSoup
 import streamlit as st
 st.markdown("""
 <style>
-  .main { padding-left: 1rem; padding-right: 1rem; }
-  .stTabs { overflow-x: auto; }
-  section[data-testid="stSidebar"] .css-1d391kg { width: 280px; }
-  .block-container { padding-top: 1rem; padding-bottom: 1rem; }
-  div[data-testid="stDataFrame"] { overflow: auto; }
+  /* ----- Spectre UI Phase 1 ----- */
+
+  /* Main container padding */
+  .main { padding-left: 2rem; padding-right: 2rem; }
+
+  /* Glass background effect */
+  .block-container {
+    background: rgba(255,255,255,0.60);
+    backdrop-filter: blur(12px);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  }
+
+  /* Floating card effect */
+  .stTabs {
+    overflow-x: auto;
+    background: rgba(255,255,255,0.25);
+    backdrop-filter: blur(10px);
+    padding: 0.4rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+  }
+
+  /* Sidebar styling */
+  section[data-testid="stSidebar"] {
+    background: rgba(240,240,240,0.65);
+    backdrop-filter: blur(8px);
+    border-right: 1px solid rgba(255,255,255,0.4);
+  }
+
+  /* Sidebar width stability */
+  section[data-testid="stSidebar"] .css-1d391kg { 
+      width: 280px !important; 
+  }
+
+  /* Table & dataframe scrollability */
+  div[data-testid="stDataFrame"] { 
+      overflow: auto; 
+  }
+
+  /* Cards for headers */
+  .spectre-header {
+    padding: 1rem 1.5rem;
+    background: rgba(255,255,255,0.35);
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+  }
+
+  /* Smooth transitions for interactive changes */
+  * {
+    transition: all 0.25s ease-in-out;
+  }
+
+  /* Button glow on hover */
+  button {
+    transition: 0.25s ease;
+  }
+  button:hover {
+    box-shadow: 0 0 12px rgba(0,150,255,0.6);
+    transform: translateY(-2px);
+  }
+
+  /* ----- Spectre UI Phase 2: Animated Panels & HUD Overlays ----- */
+
+  /* Animated section headers */
+  .spectre-header {
+      animation: fadeSlideIn 0.8s ease forwards;
+      opacity: 0;
+  }
+
+  @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0px); }
+  }
+
+  /* Holographic HUD overlay panels */
+  .hud-panel {
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.35);
+      backdrop-filter: blur(14px);
+      border-radius: 12px;
+      padding: 1rem 1.4rem;
+      box-shadow: 0 0 25px rgba(0,200,255,0.35);
+      animation: hudGlow 4s ease-in-out infinite alternate;
+  }
+
+  @keyframes hudGlow {
+      from { box-shadow: 0 0 12px rgba(0,200,255,0.30); }
+      to { box-shadow: 0 0 22px rgba(0,200,255,0.55); }
+  }
+
+  /* ----- Spectre UI Phase 3: Holographic Depth, Grid, Video Layer ----- */
+
+  /* Global holographic grid overlay */
+  .holo-grid {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      pointer-events: none;
+      background-image: 
+          linear-gradient(rgba(0,255,255,0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,255,255,0.08) 1px, transparent 1px);
+      background-size: 60px 60px;
+      z-index: 1;
+      opacity: 0.45;
+      animation: gridPulse 8s ease-in-out infinite alternate;
+  }
+
+  @keyframes gridPulse {
+      from { opacity: 0.25; }
+      to   { opacity: 0.55; }
+  }
+
+  /* Ambient particles for depth */
+  .particle {
+      position: fixed;
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: rgba(0,200,255,0.7);
+      filter: blur(2px);
+      z-index: 2;
+      animation: particleFloat 9s linear infinite;
+  }
+
+  @keyframes particleFloat {
+      from { transform: translateY(100vh) translateX(0px); opacity:0.0; }
+      20% { opacity: 0.7; }
+      to   { transform: translateY(-10vh) translateX(40px); opacity: 0; }
+  }
+
+  /* Floating holographic container */
+  .holo-container {
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(0,255,255,0.30);
+      backdrop-filter: blur(20px);
+      border-radius: 15px;
+      padding: 1.4rem;
+      margin-top: 1rem;
+      box-shadow: 0 0 45px rgba(0,255,255,0.25);
+      animation: holoFloat 5s ease-in-out infinite alternate;
+  }
+
+  @keyframes holoFloat {
+      from { transform: translateY(0px); }
+      to   { transform: translateY(-6px); }
+  }
+
+  /* Video background holder */
+  .background-video {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      object-fit: cover;
+      z-index: -2;
+      opacity: 0.45;
+  }
+
+  /* Animated tab transitions */
+  .stTabs [data-baseweb="tab"] {
+      transition: background 0.35s ease, transform 0.25s ease;
+  }
+  .stTabs [data-baseweb="tab"]:hover {
+      transform: translateY(-3px);
+      background: rgba(240,240,255,0.35);
+  }
+
+  /* Floating metric cards */
+  .metric-card {
+      background: rgba(255,255,255,0.25);
+      backdrop-filter: blur(12px);
+      padding: 1.2rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.12);
+      transition: transform .25s ease, box-shadow .25s ease;
+      transform: translateZ(0);
+  }
+  .metric-card:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 4px 22px rgba(0,0,0,0.18);
+  }
+
+  /* Animated loaders for agentic operations */
+  .agent-loader {
+      width: 38px;
+      height: 38px;
+      border: 3px solid rgba(0,150,255,0.35);
+      border-top-color: rgba(0,150,255,1);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      margin: 0 auto;
+  }
+
+  @keyframes spin {
+      to { transform: rotate(360deg); }
+  }
+
+  /* ----- Spectre UI Phase 4: Parallax, Bloom Lighting, 3D HUD ----- */
+
+  /* Parallax container */
+  .parallax-layer {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      pointer-events: none;
+      z-index: -3;
+      transform: translateZ(-2px) scale(1.3);
+      background: radial-gradient(circle at 30% 70%, rgba(0,255,255,0.12), transparent 60%);
+      animation: parallaxDrift 22s ease-in-out infinite alternate;
+  }
+
+  @keyframes parallaxDrift {
+      from { transform: translateZ(-2px) translateX(-20px) translateY(-10px) scale(1.28); }
+      to   { transform: translateZ(-2px) translateX(20px) translateY(10px) scale(1.33); }
+  }
+
+  /* Bloom lighting highlights */
+  .bloom {
+      position: absolute;
+      width: 140px; height: 140px;
+      background: radial-gradient(rgba(0,180,255,0.45), transparent 70%);
+      filter: blur(50px);
+      border-radius: 50%;
+      animation: bloomPulse 6s ease-in-out infinite alternate;
+      z-index: -1;
+  }
+
+  @keyframes bloomPulse {
+      from { opacity: 0.55; transform: scale(1.0); }
+      to   { opacity: 0.95; transform: scale(1.25); }
+  }
+
+  /* 3D holographic HUD ring */
+  .hud-ring {
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      border: 2px dashed rgba(0,255,255,0.55);
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      animation: hudSpin 14s linear infinite;
+      pointer-events: none;
+  }
+
+  @keyframes hudSpin {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to   { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+
+  /* depth shadow under cards */
+  .depth-frame {
+      box-shadow: 0 20px 55px rgba(0,0,0,0.35);
+      border-radius: 15px;
+  }
 </style>
 """, unsafe_allow_html=True)
 
@@ -322,6 +575,8 @@ def econometric_panels_and_graphs(df: pd.DataFrame):
     - Markov transition bar
     - Agentic explanation hook
     """
+    if df is None or not isinstance(df, pd.DataFrame) or df.empty:
+        return {}
     import plotly.express as px
     out = {}
 
@@ -648,7 +903,30 @@ def build_pdf(summary: str) -> bytes:
 # =============================================================================
 
 def main():
-    st.sidebar.button("Minimize Sidebar")
+    # Phase 4: parallax + bloom lighting + HUD ring
+    st.markdown("<div class='parallax-layer'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='bloom' style='top:15vh; left:20vw;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='bloom' style='top:65vh; left:70vw; animation-delay:2s;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='hud-ring'></div>", unsafe_allow_html=True)
+
+    # Inject holographic grid layer + particles
+    st.markdown("<div class='holo-grid'></div>", unsafe_allow_html=True)
+    for i in range(18):
+        st.markdown(f"<div class='particle' style='left:{5+i*7}vw; animation-delay:{i*0.7}s'></div>", unsafe_allow_html=True)
+
+    # Optional video background (user can upload)
+    vid = st.sidebar.file_uploader("Background video (optional, .mp4)", type=["mp4"])
+    if vid:
+        video_bytes = vid.read()
+        st.markdown(
+            f"<video class='background-video' autoplay loop muted playsinline src='data:video/mp4;base64,{video_bytes.hex()}'></video>",
+            unsafe_allow_html=True
+        )
+
+    st.sidebar.markdown("### Sidebar Controls")
+    toggle = st.sidebar.button("Minimize Sidebar")
+    if toggle:
+        st.markdown("<style> section[data-testid='stSidebar'] { width: 0 !important; opacity: 0; } </style>", unsafe_allow_html=True)
     st.set_page_config(page_title="Irish Dairy Decision Intelligence — Full Build", layout="wide")
     cfg = load_config()
     logger.info("App start")
@@ -670,7 +948,7 @@ def main():
     # ---------- LANDSCAPE ----------
     with tabs[0]:
         st.subheader("Decision-Making Tools & Models (Ireland) — Consensus Landscape")
-        st.dataframe(consensus_landscape_df(), width="stretch", hide_index=True)
+        st.dataframe(consensus_landscape_df(), width=None, hide_index=True)
         st.markdown("**Trends & Research Directions**")
         for t in TRENDS: st.markdown(f"- {t}")
         st.caption("Figure 1. Overview of decision-making tools in the Irish dairy processing industry. "
@@ -689,7 +967,7 @@ def main():
 
         missing = [c for c in INDICATORS if c not in df_plants.columns]
         if missing: st.error(f"Missing columns: {missing}"); st.stop()
-        st.dataframe(df_plants, width="stretch")
+        st.dataframe(df_plants, width=None)
 
         st.subheader("2. Scenario & Weights")
         scen = st.selectbox("Scenario", list(SCENARIO_WEIGHTS.keys())+["Custom"], index=2)
@@ -709,8 +987,8 @@ def main():
 
         score_col = f"score_{scenario_name}"
         st.subheader("3. Ranked Options")
-        st.dataframe(df_ranked[["option_id","plant","strategy",score_col,"county"]], width="stretch")
-        st.bar_chart(df_ranked.set_index("option_id")[score_col], width="stretch")
+        st.dataframe(df_ranked[["option_id","plant","strategy",score_col,"county"]], width=None)
+        st.bar_chart(df_ranked.set_index("option_id")[score_col])
 
         st.subheader("4. Option Explanation")
         opt = st.selectbox("Select option", df_ranked["option_id"])
@@ -753,21 +1031,67 @@ def main():
     with tabs[3]:
         st.subheader("Quantum–Econometric Pipeline")
         df_ranked = st.session_state.get("df_ranked", create_demo_plants())
+
+        dfq = st.session_state.get("dfq", None)
+
         if st.button("Run Full Simulation"):
             engine = DecisionEngine(df_ranked)
             _, dfq, summary = engine.run_full("balanced", SCENARIO_WEIGHTS["balanced"])
+            st.session_state["dfq"] = dfq
             st.success("Simulation complete.")
-            st.dataframe(dfq.head(), width="stretch")
 
-            # Econometric Visuals
-            charts = econometric_panels_and_graphs(dfq)
-            for k, fig in charts.items():
-                st.plotly_chart(fig, width="stretch")
+        if dfq is None:
+            st.info("Run the simulation to generate quantum–econometric outputs.")
+            st.stop()
+        else:
+            st.dataframe(dfq.head(), width=None)
+
+        # Econometric Visuals
+        charts = econometric_panels_and_graphs(dfq)
+        for k, fig in charts.items():
+            st.plotly_chart(fig, width="stretch")
 
             # Agentic explanation if available
             if "agentic_last_output" in st.session_state:
                 st.markdown("### Agentic Explanation")
                 st.write(st.session_state["agentic_last_output"])
+
+        # ---- SHAP Integration (Local Feature Explainability) ----
+        if shap is not None:
+            st.subheader("SHAP Explainability — Local & Global Feature Effects")
+
+            try:
+                # Use margin_per_litre as target for explanation (example)
+                target = "margin_per_litre"
+                feature_cols = [c for c in dfq.columns
+                                if c not in ["option_id","plant","strategy","county","uncertainty_state"]
+                                and dfq[c].dtype.kind in "if"]
+
+                X = dfq[feature_cols]
+                y = dfq[target]
+
+                # Basic model for SHAP explanation
+                import xgboost as xgb
+                model_shap = xgb.XGBRegressor(n_estimators=120, max_depth=3, learning_rate=0.08)
+                model_shap.fit(X, y)
+
+                explainer = shap.TreeExplainer(model_shap)
+                shap_values = explainer.shap_values(X)
+
+                st.markdown("**Global Feature Importance (SHAP)**")
+                shap_fig1 = shap.plots.beeswarm(shap_values, max_display=12, show=False)
+                st.pyplot(bbox_inches="tight")
+
+                st.markdown("**Local Explanation for Top-Ranked Option**")
+                top_row = X.iloc[[0]]
+                shap.local = explainer.shap_values(top_row)
+                shap_fig2 = shap.plots.waterfall(explainer(top_row), show=False)
+                st.pyplot(bbox_inches="tight")
+
+            except Exception as e:
+                st.warning(f"SHAP failed to compute: {e}")
+        else:
+            st.info("Install SHAP to enable explainability (pip install shap).")
 
         with st.expander("Panel OLS (placeholder)"):
             if PanelOLS is None:
@@ -831,7 +1155,7 @@ def main():
             {"Regulation": "GDPR", "Scope": "Personal data", "Focus": "Privacy, consent, rights", "Status": "No personal data ingested in demo"},
             {"Regulation": "Cybersecurity Act", "Scope": "ICT products/services", "Focus": "Security certification", "Status": "Out-of-scope (infrastructure)"},
         ]
-        st.dataframe(pd.DataFrame(regs), width="stretch", hide_index=True)
+        st.dataframe(pd.DataFrame(regs), width=None, hide_index=True)
         st.markdown(
             "- **Transparency**: MCDA + econometric pipeline and AI outputs are visible in the UI.\n"
             "- **Risk Management**: RL-Teacher audits, scenario simulations, uncertainty states.\n"
