@@ -988,94 +988,45 @@ def farms_network_map(df_farms, county_choice="All"):
     if not req.issubset(set(df_farms.columns)):
         st.warning("Farm CSV must include lat, lon, county.")
         return
-    df = df_farms.dropna(subset=["lat","lon","county"]).copy()
-    # sample farms for faster loading
-    if len(df) > 6000:
-        df = df.sample(6000, random_state=42)
-    if county_choice != "All":
-        df = df[df["county"].astype(str)==str(county_choice)]
-    if df.empty:
-        st.info("No farms to show for the selection.")
-        return
-
-    # When showing all counties, centre the map using the national centroid grid
-    if county_choice == "All":
-        all_lats = (
-            [lat for (lat, _ ) in COOP_CENTROIDS.values()] +
-            [lat for (lat, _ ) in PROC_CENTROIDS.values()] +
-            [lat for (lat, _ ) in PORT_CENTROIDS.values()]
-        )
-        all_lons = (
-            [lon for (_ , lon) in COOP_CENTROIDS.values()] +
-            [lon for (_ , lon) in PROC_CENTROIDS.values()] +
-            [lon for (_ , lon) in PORT_CENTROIDS.values()]
-        )
-        center = [float(np.mean(all_lats)), float(np.mean(all_lons))]
-    else:
-        center = [df["lat"].mean(), df["lon"].mean()]
-
-    m = folium.Map(location=center, zoom_start=7, tiles="OpenStreetMap")
-    from folium.plugins import FastMarkerCluster
-
-def farms_network_map(df_farms, county_choice="All"):
-    req = {"lat","lon","county"}
-    if not req.issubset(set(df_farms.columns)):
-        st.warning("Farm CSV must include lat, lon, county.")
-        return
 
     df = df_farms.dropna(subset=["lat","lon","county"]).copy()
 
-    # Filter
+    # Filter for popups
     if county_choice != "All":
         df_visible = df[df["county"].astype(str)==str(county_choice)]
     else:
-        df_visible = df  # visible farms for popup markers
+        df_visible = df
 
     if df.empty:
         st.info("No farms to show for the selection.")
         return
 
-    # Map center
+    # Center map using national centroids
     center = [df["lat"].mean(), df["lon"].mean()]
     m = folium.Map(location=center, zoom_start=7, tiles="OpenStreetMap")
 
-    # ---------- FAST CLUSTER FOR ALL 18,000 FARMS ----------
+    # Fast lightweight clustering for all farms
     farm_points = df[["lat","lon"]].values.tolist()
     FastMarkerCluster(farm_points).add_to(m)
 
-    # ---------- POPUP MARKERS ONLY FOR SELECTED COUNTY ----------
-    for idx, r in df_visible.iterrows():
-        lat, lon = float(r["lat"]), float(r["lon"])
-        county = str(r["county"])
-
+    # Popup markers ONLY for selected county
+    for _, r in df_visible.iterrows():
         folium.Marker(
-            location=[lat, lon],
+            [r["lat"], r["lon"]],
             popup=folium.Popup(_popup_farm(r), max_width=300),
-            tooltip=f"{county} farm",
+            tooltip=f"{r['county']} farm",
             icon=folium.Icon(color="blue", icon="arrow-up", prefix="fa")
         ).add_to(m)
 
-    # ---------- OPTIONAL: Show centroids (lightweight) ----------
+    # Centroids
     for name, coord in COOP_CENTROIDS.items():
-        folium.Marker(
-            coord,
-            icon=folium.Icon(color="lightblue", icon="industry", prefix="fa"),
-            popup=f"<b>{name} Co-op</b>"
-        ).add_to(m)
+        folium.Marker(coord, icon=folium.Icon(color="lightblue", icon="industry", prefix="fa")).add_to(m)
 
     for name, coord in PROC_CENTROIDS.items():
-        folium.Marker(
-            coord,
-            icon=folium.Icon(color="red", icon="cog", prefix="fa"),
-            popup=f"<b>{name} Processor</b>"
-        ).add_to(m)
+        folium.Marker(coord, icon=folium.Icon(color="red", icon="cog", prefix="fa")).add_to(m)
 
     for name, coord in PORT_CENTROIDS.items():
-        folium.Marker(
-            coord,
-            icon=folium.Icon(color="darkgreen", icon="ship", prefix="fa"),
-            popup=f"<b>{name} Port</b>"
-        ).add_to(m)
+        folium.Marker(coord, icon=folium.Icon(color="darkgreen", icon="ship", prefix="fa")).add_to(m)
 
     folium.LayerControl().add_to(m)
     st_folium(m, use_container_width=True, height=650)
