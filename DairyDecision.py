@@ -1078,7 +1078,7 @@ def farms_network_map(df_farms, county_choice="All"):
         ).add_to(m)
 
     folium.LayerControl().add_to(m)
-    st_folium(m, width="stretch", height=650)
+    st_folium(m, use_container_width=True, height=650)
         
 def plants_options_map(df_ranked, score_col):
     if not {"lat","lon"}.issubset(df_ranked.columns):
@@ -1097,7 +1097,7 @@ def plants_options_map(df_ranked, score_col):
         folium.CircleMarker(location=[r["lat"], r["lon"]], radius=radius, color="blue",
                             fill=True, fill_opacity=0.7,
                             popup=folium.Popup(popup, max_width=280)).add_to(m)
-    st_folium(m, width="stretch", height=520)
+    st_folium(m, use_container_width=True , height=520)
 
 
 # =============================================================================
@@ -1418,7 +1418,7 @@ def main():
     with tabs[0]:
         st.markdown("<div class='tab-clip glass-only'>", unsafe_allow_html=True)
         st.subheader("Decision-Making Tools & Models Literature Review — Google Scholar")
-        st.dataframe(consensus_landscape_df(), width="stretch", hide_index=True)
+        st.dataframe(consensus_landscape_df(), use_container_width=True, hide_index=True)
         st.markdown("**Trends & Research Directions**")
         for t in TRENDS: st.markdown(f"- {t}")
         st.caption("Overview of decision-making tools in the Irish dairy processing industry. "
@@ -1443,7 +1443,7 @@ def main():
             st.error(f"Missing columns: {missing}")
             st.stop()
 
-        st.dataframe(df_plants, width="stretch")
+        st.dataframe(df_plants, use_container_width=True)
 
         st.subheader("2. Scenario & Weights")
         scen = st.selectbox("Scenario", list(SCENARIO_WEIGHTS.keys())+["Custom"], index=2)
@@ -1465,7 +1465,7 @@ def main():
         score_col = f"score_{scenario_name}"
 
         st.subheader("3. Ranked Options")
-        st.dataframe(df_ranked[["option_id","plant","strategy",score_col,"county"]], width="stretch")
+        st.dataframe(df_ranked[["option_id","plant","strategy",score_col,"county"]], use_container_width=True)
         st.bar_chart(df_ranked.set_index("option_id")[score_col])
 
         st.subheader("4. Option Explanation")
@@ -1593,12 +1593,12 @@ def main():
             st.markdown("</div>", unsafe_allow_html=True)
             st.stop()
         else:
-            st.dataframe(dfq.head(), width="stretch")
+            st.dataframe(dfq.head(), use_container_width=True)
 
         # Econometric Visuals
         charts = econometric_panels_and_graphs(dfq)
         for k, fig in charts.items():
-            st.plotly_chart(fig, width="stretch")
+            st.plotly_chart(fig, use_container_width=True)
 
             # Agentic explanation if available
             if "agentic_last_output" in st.session_state:
@@ -1848,12 +1848,12 @@ def main():
                         )
 
                         st.write("Top positive contributors:")
-                        st.dataframe(contrib_df.head(5), width="stretch")
+                        st.dataframe(contrib_df.head(5), use_container_width=True)
 
                         st.write("Top negative contributors:")
                         st.dataframe(
                             contrib_df.tail(5).sort_values("shap_value"),
-                            width="stretch",
+                            use_container_width=True,
                         )
                     except Exception as e:
                         st.warning(f"Local SHAP contribution view skipped: {e}")
@@ -2027,7 +2027,7 @@ def main():
             {"Regulation": "GDPR", "Scope": "Personal data", "Focus": "Privacy, consent, rights", "Status": "No personal data ingested in demo"},
             {"Regulation": "Cybersecurity Act", "Scope": "ICT products/services", "Focus": "Security certification", "Status": "Out-of-scope (infrastructure)"},
         ]
-        st.dataframe(pd.DataFrame(regs), width="stretch", hide_index=True)
+        st.dataframe(pd.DataFrame(regs), use_container_width=True, hide_index=True)
         st.markdown(
             "- **Transparency**: MCDA + econometric pipeline and AI outputs are visible in the UI.\n"
             "- **Risk Management**: RL-Teacher audits, scenario simulations, uncertainty states.\n"
@@ -2064,7 +2064,7 @@ def main():
             st.info("No valid farm records to compute supply-chain metrics.")
         else:
             st.markdown("**County-level Supply Chain KPIs (Daily)**")
-            st.dataframe(agg_df, width="stretch")
+            st.dataframe(agg_df, use_container_width=True)
 
             c1, c2, c3 = st.columns(3)
             with c1:
