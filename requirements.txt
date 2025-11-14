@@ -1,41 +1,27 @@
-# Core
 streamlit
-numpy
 pandas
+numpy
 plotly
-bs4
-
-# Visualization
 folium
 streamlit-folium
 pydeck
-
-# Logging & Config
-loguru
-PyYAML
-
-# Econometrics
-linearmodels
-statsmodels
-
-# Explainability
+scipy
+scikit-learn
+xgboost
 shap
-
-# AI / LLMs
-openai
-
-# PDF & Export
-reportlab
-
-# Optional: Mapping & Geo
-geopy
-
-# Optional: Storage & Vector Search (for advanced RAG)
-faiss-cpu
-chromadb
-
-# Utilities
+matplotlib
+requests
+beautifulsoup4
 python-dotenv
 
-# Security
-cryptography
+bleak              # BLE scanning
+nfcpy              # NFC fallback
+
+openai             # LLM / agents
+
+pyyaml
+tqdm
+
+# optional visuals / speed
+uvicorn
+fastapi
