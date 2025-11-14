@@ -20,22 +20,146 @@ from bs4 import BeautifulSoup
 # ---------- UI ----------
 
 import streamlit as st
+st.set_page_config(
+    page_title="Irish Dairy Decision Intelligence",
+    layout="wide"
+)
+st.markdown("""
+<style>
+/* Master viewport container — enforces all UI inside transparent video frame */
+#main-viewport {
+    position: relative !important;
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+    width: 100vw;
+    height: 100vh;              /* Full video height */
+    overflow-y: scroll;         /* Scroll inside the video frame */
+    overflow-x: hidden;
+    scrollbar-width: none;      /* Firefox */
+    scroll-behavior: smooth;
+    overscroll-behavior-y: contain;
+}
+#main-viewport::-webkit-scrollbar {
+    width: 0px;                 /* Chrome/Safari — invisible scrollbar */
+    background: transparent;
+}
+
+/* Place all Streamlit blocks inside the viewport */
+.block-container {
+    position: relative !important;
+    margin-top: 0 !important;
+    padding-top: 3vh !important;
+    z-index: 10 !important;
+    backdrop-filter: blur(2px) !important;
+}
+
+/* Glass-only utility for tab panels */
+.glass-only {
+    background: rgba(255,255,255,0.25) !important;
+    backdrop-filter: blur(2px) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 4px 25px rgba(0,0,0,0.15) !important;
+}
+
+/* Force content clipping inside video frame for all tabs */
+#main-viewport .block-container {
+    max-height: 100vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+}
+
+/* Hide any content that tries to go beyond the frame */
+html, body {
+    overflow: hidden !important;
+}
+
+/* Tab content clipping for each tab */
+.tab-clip {
+    position: relative !important;
+    max-height: calc(100vh - 5rem) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    pointer-events: auto !important;
+}
+
+/* Dynamic transparency per tab */
+[data-testid="stTabs"] button[aria-selected="true"] {
+    background: rgba(255,255,255,0.30) !important;
+    backdrop-filter: blur(18px) !important;
+    border-bottom: 2px solid rgba(0,200,255,0.55) !important;
+}
+[data-testid="stTabs"] button[aria-selected="false"] {
+    background: rgba(255,255,255,0.10) !important;
+    backdrop-filter: blur(6px) !important;
+}
+</style>
+<div id='main-viewport'>
+
+""", unsafe_allow_html=True)
+st.markdown("""
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    setTimeout(function() {
+        const viewport = document.getElementById("main-viewport");
+        const app = document.querySelector("div.stApp");
+        if (viewport && app && !viewport.contains(app)) {
+            viewport.appendChild(app);
+            console.log("✓ Streamlit UI moved inside holographic viewport.");
+        }
+        const blocks=document.querySelectorAll('.block-container');
+        blocks.forEach(b=>{
+          b.style.maxHeight='100vh';
+          b.style.overflowY='auto';
+        });
+    }, 350);
+});
+</script>
+
+<style>
+#main-viewport {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    overflow-y: scroll !important;
+    overflow-x: hidden !important;
+    z-index: 10 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+st.markdown("""
+<style>
+/* FIX: Allow interaction with tabs & Streamlit widgets */
+#main-viewport {
+    pointer-events: none !important;
+}
+#main-viewport .block-container,
+#main-viewport * {
+    pointer-events: auto !important;
+}
+</style>
+""", unsafe_allow_html=True)
 st.markdown("""
 <style>
   /* ----- Spectre UI Phase 1 ----- */
 
   /* Main container padding */
-  .main { padding-left: 2rem; padding-right: 2rem; }
+  .main { padding-left: 2rem; padding-right: 2rem; perspective: 1200px; }
 
   /* Glass background effect */
   .block-container {
-    background: rgba(255,255,255,0.60);
-    backdrop-filter: blur(12px);
+    background: rgba(255,255,255,0.40);
+    backdrop-filter: blur(2px);
     border-radius: 12px;
     padding: 2rem;
     margin-top: 1rem;
     margin-bottom: 1rem;
     box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    transform-style: preserve-3d;
+    animation: cameraOrbit 26s ease-in-out infinite alternate;
   }
 
   /* Floating card effect */
@@ -72,6 +196,8 @@ st.markdown("""
     border-radius: 10px;
     margin-bottom: 1rem;
     box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+    animation: fadeSlideIn 0.8s ease forwards;
+    opacity: 0;
   }
 
   /* Smooth transitions for interactive changes */
@@ -91,10 +217,6 @@ st.markdown("""
   /* ----- Spectre UI Phase 2: Animated Panels & HUD Overlays ----- */
 
   /* Animated section headers */
-  .spectre-header {
-      animation: fadeSlideIn 0.8s ease forwards;
-      opacity: 0;
-  }
 
   @keyframes fadeSlideIn {
       from { opacity: 0; transform: translateY(12px); }
@@ -124,14 +246,14 @@ st.markdown("""
       position: fixed;
       top: 0; left: 0;
       width: 100vw; height: 100vh;
-      pointer-events: none;
       background-image: 
           linear-gradient(rgba(0,255,255,0.08) 1px, transparent 1px),
           linear-gradient(90deg, rgba(0,255,255,0.08) 1px, transparent 1px);
       background-size: 60px 60px;
       z-index: 1;
-      opacity: 0.45;
+      opacity: 0.25;
       animation: gridPulse 8s ease-in-out infinite alternate;
+      pointer-events: none;
   }
 
   @keyframes gridPulse {
@@ -148,12 +270,15 @@ st.markdown("""
       filter: blur(2px);
       z-index: 2;
       animation: particleFloat 9s linear infinite;
+      will-change: transform, opacity;
+      transform: translate3d(0,0,0);
+      pointer-events: none;
   }
 
   @keyframes particleFloat {
-      from { transform: translateY(100vh) translateX(0px); opacity:0.0; }
+      from { transform: translate3d(0, 100vh, 0); opacity:0.0; }
       20% { opacity: 0.7; }
-      to   { transform: translateY(-10vh) translateX(40px); opacity: 0; }
+      to   { transform: translate3d(40px, -10vh, 0); opacity: 0; }
   }
 
   /* Floating holographic container */
@@ -175,12 +300,26 @@ st.markdown("""
 
   /* Video background holder */
   .background-video {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      object-fit: cover;
-      z-index: -2;
-      opacity: 0.45;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      min-width: 100% !important;
+      min-height: 100% !important;
+      object-fit: cover !important;
+      object-position: center center !important;
+      z-index: -9999 !important;
+      pointer-events: none !important;
+      opacity: 0.55 !important;
+      transition: opacity 1.8s ease-in-out !important;
+  }
+
+  html, body, .stApp {
+      position: relative !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      overflow: hidden !important;
   }
 
   /* Animated tab transitions */
@@ -229,11 +368,13 @@ st.markdown("""
       position: fixed;
       top: 0; left: 0;
       width: 100vw; height: 100vh;
-      pointer-events: none;
       z-index: -3;
-      transform: translateZ(-2px) scale(1.3);
       background: radial-gradient(circle at 30% 70%, rgba(0,255,255,0.12), transparent 60%);
-      animation: parallaxDrift 22s ease-in-out infinite alternate;
+      background-attachment: fixed;
+      transform: translateZ(-2px) scale(1.3);
+      will-change: transform, opacity;
+      /* animation: parallaxDrift 22s ease-in-out infinite alternate; */
+      pointer-events: none;
   }
 
   @keyframes parallaxDrift {
@@ -248,8 +389,9 @@ st.markdown("""
       background: radial-gradient(rgba(0,180,255,0.45), transparent 70%);
       filter: blur(50px);
       border-radius: 50%;
-      animation: bloomPulse 6s ease-in-out infinite alternate;
+      /* animation: bloomPulse 6s ease-in-out infinite alternate; */
       z-index: -1;
+      pointer-events: none;
   }
 
   @keyframes bloomPulse {
@@ -257,22 +399,10 @@ st.markdown("""
       to   { opacity: 0.95; transform: scale(1.25); }
   }
 
-  /* 3D holographic HUD ring */
-  .hud-ring {
-      width: 220px;
-      height: 220px;
-      border-radius: 50%;
-      border: 2px dashed rgba(0,255,255,0.55);
-      position: absolute;
-      left: 50%; top: 50%;
-      transform: translate(-50%, -50%);
-      animation: hudSpin 14s linear infinite;
-      pointer-events: none;
-  }
 
-  @keyframes hudSpin {
-      from { transform: translate(-50%, -50%) rotate(0deg); }
-      to   { transform: translate(-50%, -50%) rotate(360deg); }
+  @keyframes cameraOrbit {
+      from { transform: translateY(0px) rotateX(2deg) rotateY(-4deg); }
+      to   { transform: translateY(-6px) rotateX(-2deg) rotateY(4deg); }
   }
 
   /* depth shadow under cards */
@@ -283,9 +413,69 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# ---- Parallax/scroll inertia JS ----
+st.markdown(
+    """
+    <script>
+    (function() {
+      function initParallax() {
+        var viewport = document.getElementById('main-viewport');
+        if (!viewport) return;
+        var parallax = document.querySelector('.parallax-layer');
+        var blooms = document.querySelectorAll('.bloom');
+        var hud = document.querySelector('.hud-ring');
+        if (!parallax) return;
+
+        var target = 0;
+        var current = 0;
+        var ease = 0.08;  // inertia factor
+
+        function onScroll() {
+          target = viewport.scrollTop || 0;
+        }
+
+        viewport.addEventListener('scroll', onScroll, { passive: true });
+
+        function raf() {
+          current += (target - current) * ease;
+          var offset = -current * 0.18;  // slower parallax movement
+
+          // Background parallax
+          parallax.style.transform = 'translate3d(0,' + offset + 'px,0) scale(1.3)';
+
+          // Bloom layers drift slightly with depth
+          blooms.forEach(function(b, i) {
+            var bo = offset * (0.10 + 0.04 * i);
+            b.style.transform = 'translate3d(0,' + bo + 'px,0)';
+          });
+
+          // HUD ring subtle vertical drift
+          if (hud) {
+            var hudOffset = offset * 0.02;
+            hud.style.transform = 'translate(-50%, calc(-50% + ' + hudOffset + 'px))';
+          }
+
+          window.requestAnimationFrame(raf);
+        }
+
+        window.requestAnimationFrame(raf);
+      }
+
+      if (document.readyState !== 'loading') {
+        initParallax();
+      } else {
+        document.addEventListener('DOMContentLoaded', initParallax);
+      }
+    })();
+    </script>
+    """,
+    unsafe_allow_html=True,
+)
+
 # ---------- Maps (Leaflet over OpenStreetMap) ----------
 import folium
 from folium.plugins import MarkerCluster
+from folium.plugins import FastMarkerCluster
 from streamlit_folium import st_folium
 
 # ---------- Viz (3D optional) ----------
@@ -429,8 +619,7 @@ def create_demo_plants() -> pd.DataFrame:
              lat=52.25, lon=-7.11, county="Waterford"),
     ])
 
-@st.cache_data
-def create_demo_farms(n=1200, seed=42):
+def create_demo_farms(n=18000, seed=42):  # ~18k simulated dairy farms across key counties
     rng = np.random.default_rng(seed)
     counties = {
         "Cork": (51.95, -8.55, 0.45, 0.45),
@@ -702,6 +891,85 @@ PORT_CENTROIDS = {
     "Cork": (51.856, -8.30), "Limerick": (52.65, -8.69), "Waterford": (52.26, -6.94),
     "Kerry": (52.14, -9.72), "Tipperary": (52.52, -7.50), "Galway": (53.27, -9.05),
 }
+def _haversine_km(lat1, lon1, lat2, lon2):
+    """
+    Great-circle distance between two lat/lon points (km).
+    """
+    R = 6371.0
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+
+def supply_chain_metrics(df_farms: pd.DataFrame, emission_factor_kg_per_km: float = 1.2):
+    """
+    Build farm → co-op → processor → port supply-chain metrics.
+
+    Returns
+    -------
+    routes_df : per-farm route metrics
+    agg_df    : county-level aggregates
+    """
+    required = {"lat", "lon", "county"}
+    if not required.issubset(df_farms.columns):
+        return pd.DataFrame(), pd.DataFrame()
+
+    rows = []
+    farms = df_farms.dropna(subset=["lat", "lon", "county"]).copy()
+
+    for _, r in farms.iterrows():
+        lat = float(r["lat"])
+        lon = float(r["lon"])
+        county = str(r["county"])
+
+        coop = COOP_CENTROIDS.get(county)
+        proc = PROC_CENTROIDS.get(county)
+        port = PORT_CENTROIDS.get(county)
+        if not (coop and proc and port):
+            continue
+
+        d_farm_coop = _haversine_km(lat, lon, coop[0], coop[1])
+        d_coop_proc = _haversine_km(coop[0], coop[1], proc[0], proc[1])
+        d_proc_port = _haversine_km(proc[0], proc[1], port[0], port[1])
+        total_km = d_farm_coop + d_coop_proc + d_proc_port
+
+        vol = float(r.get("milk_yield_l_per_day", 0.0))
+        emissions = total_km * emission_factor_kg_per_km  # very rough EF placeholder
+
+        rows.append(
+            {
+                "herd_id": r.get("herd_id"),
+                "county": county,
+                "coop": r.get("coop", ""),
+                "leg_farm_coop_km": d_farm_coop,
+                "leg_coop_proc_km": d_coop_proc,
+                "leg_proc_port_km": d_proc_port,
+                "total_route_km": total_km,
+                "milk_yield_l_per_day": vol,
+                "route_emissions_kgCO2e": emissions,
+            }
+        )
+
+    if not rows:
+        return pd.DataFrame(), pd.DataFrame()
+
+    routes = pd.DataFrame(rows)
+    agg = (
+        routes.groupby("county", as_index=False)
+        .agg(
+            milk_yield_l_per_day=("milk_yield_l_per_day", "sum"),
+            total_route_km=("total_route_km", "sum"),
+            route_emissions_kgCO2e=("route_emissions_kgCO2e", "sum"),
+        )
+    )
+    agg["emissions_intensity_kg_per_L"] = (
+        agg["route_emissions_kgCO2e"] / agg["milk_yield_l_per_day"].replace(0, np.nan)
+    )
+
+    return routes, agg
 
 def _popup_farm(row):
     parts = [f"<b>Farm</b> — {row.get('county','')}"]
@@ -721,49 +989,97 @@ def farms_network_map(df_farms, county_choice="All"):
         st.warning("Farm CSV must include lat, lon, county.")
         return
     df = df_farms.dropna(subset=["lat","lon","county"]).copy()
+    # sample farms for faster loading
+    if len(df) > 6000:
+        df = df.sample(6000, random_state=42)
     if county_choice != "All":
         df = df[df["county"].astype(str)==str(county_choice)]
     if df.empty:
         st.info("No farms to show for the selection.")
         return
 
+    # When showing all counties, centre the map using the national centroid grid
+    if county_choice == "All":
+        all_lats = (
+            [lat for (lat, _ ) in COOP_CENTROIDS.values()] +
+            [lat for (lat, _ ) in PROC_CENTROIDS.values()] +
+            [lat for (lat, _ ) in PORT_CENTROIDS.values()]
+        )
+        all_lons = (
+            [lon for (_ , lon) in COOP_CENTROIDS.values()] +
+            [lon for (_ , lon) in PROC_CENTROIDS.values()] +
+            [lon for (_ , lon) in PORT_CENTROIDS.values()]
+        )
+        center = [float(np.mean(all_lats)), float(np.mean(all_lons))]
+    else:
+        center = [df["lat"].mean(), df["lon"].mean()]
+
+    m = folium.Map(location=center, zoom_start=7, tiles="OpenStreetMap")
+    from folium.plugins import FastMarkerCluster
+
+def farms_network_map(df_farms, county_choice="All"):
+    req = {"lat","lon","county"}
+    if not req.issubset(set(df_farms.columns)):
+        st.warning("Farm CSV must include lat, lon, county.")
+        return
+
+    df = df_farms.dropna(subset=["lat","lon","county"]).copy()
+
+    # Filter
+    if county_choice != "All":
+        df_visible = df[df["county"].astype(str)==str(county_choice)]
+    else:
+        df_visible = df  # visible farms for popup markers
+
+    if df.empty:
+        st.info("No farms to show for the selection.")
+        return
+
+    # Map center
     center = [df["lat"].mean(), df["lon"].mean()]
     m = folium.Map(location=center, zoom_start=7, tiles="OpenStreetMap")
-    cluster = MarkerCluster(name="Farms").add_to(m)
 
-    # Add farms with blue arrow markers + deterministic routing
-    for _, r in df.iterrows():
+    # ---------- FAST CLUSTER FOR ALL 18,000 FARMS ----------
+    farm_points = df[["lat","lon"]].values.tolist()
+    FastMarkerCluster(farm_points).add_to(m)
+
+    # ---------- POPUP MARKERS ONLY FOR SELECTED COUNTY ----------
+    for idx, r in df_visible.iterrows():
         lat, lon = float(r["lat"]), float(r["lon"])
         county = str(r["county"])
+
         folium.Marker(
             location=[lat, lon],
-            icon=folium.Icon(color="blue", icon="arrow-up", prefix="fa"),
             popup=folium.Popup(_popup_farm(r), max_width=300),
             tooltip=f"{county} farm",
-        ).add_to(cluster)
+            icon=folium.Icon(color="blue", icon="arrow-up", prefix="fa")
+        ).add_to(m)
 
-        coop = COOP_CENTROIDS.get(county)
-        proc = PROC_CENTROIDS.get(county)
-        port = PORT_CENTROIDS.get(county)
-        if coop and proc and port:
-            folium.PolyLine([[lat,lon], coop], color="cyan", weight=1.2, opacity=0.8).add_to(m)
-            folium.PolyLine([coop, proc], color="orange", weight=1.6, dash_array="6,6").add_to(m)
-            folium.PolyLine([proc, port], color="green", weight=2.0, opacity=0.9).add_to(m)
-
-    # Draw centroids
+    # ---------- OPTIONAL: Show centroids (lightweight) ----------
     for name, coord in COOP_CENTROIDS.items():
-        folium.Marker(coord, icon=folium.Icon(color="lightblue", icon="industry", prefix="fa"),
-                      popup=f"<b>{name} Co-op</b>").add_to(m)
+        folium.Marker(
+            coord,
+            icon=folium.Icon(color="lightblue", icon="industry", prefix="fa"),
+            popup=f"<b>{name} Co-op</b>"
+        ).add_to(m)
+
     for name, coord in PROC_CENTROIDS.items():
-        folium.Marker(coord, icon=folium.Icon(color="red", icon="cog", prefix="fa"),
-                      popup=f"<b>{name} Processor</b>").add_to(m)
+        folium.Marker(
+            coord,
+            icon=folium.Icon(color="red", icon="cog", prefix="fa"),
+            popup=f"<b>{name} Processor</b>"
+        ).add_to(m)
+
     for name, coord in PORT_CENTROIDS.items():
-        folium.Marker(coord, icon=folium.Icon(color="darkgreen", icon="ship", prefix="fa"),
-                      popup=f"<b>{name} Port</b>").add_to(m)
+        folium.Marker(
+            coord,
+            icon=folium.Icon(color="darkgreen", icon="ship", prefix="fa"),
+            popup=f"<b>{name} Port</b>"
+        ).add_to(m)
 
     folium.LayerControl().add_to(m)
     st_folium(m, width="stretch", height=650)
-
+        
 def plants_options_map(df_ranked, score_col):
     if not {"lat","lon"}.issubset(df_ranked.columns):
         st.info("No lat/lon in plant options.")
@@ -897,6 +1213,108 @@ def build_pdf(summary: str) -> bytes:
     c.drawText(t); c.showPage(); c.save()
     pdf = buf.getvalue(); buf.close(); return pdf
 
+# =============================================================================
+#  BLE / NFC SENSOR BRIDGE (Telemetric DataStream for MCDA)
+# =============================================================================
+
+try:
+    from bleak import BleakScanner
+except Exception:
+    BleakScanner = None
+
+
+class BluetoothNFCBridge:
+    """
+    Unified BLE + NFC Low-Energy Telemetry Bridge.
+    - Scans BLE advertisements
+    - Extracts sensor payloads
+    - Parses NFC/NDEF-like structures from encoded bytes
+    """
+
+    def __init__(self):
+        self.last_packet = None
+        self.last_timestamp = None
+        self.enabled = False
+
+    async def scan_once(self):
+        """Perform a single BLE scan and capture telemetry."""
+        if BleakScanner is None:
+            return {"error": "Bleak not installed"}
+
+        devices = await BleakScanner.discover(timeout=3.0)
+
+        for d in devices:
+            if d.metadata and "manufacturer_data" in d.metadata:
+                payload = d.metadata["manufacturer_data"]
+                if payload:
+                    # Select the first available manufacturer payload
+                    key = list(payload.keys())[0]
+                    raw = payload[key]
+
+                    # Decode sensor-like structure
+                    parsed = self._parse_payload(raw)
+
+                    self.last_packet = parsed
+                    self.last_timestamp = datetime.utcnow().isoformat()
+                    return parsed
+
+        return None
+
+    def _parse_payload(self, raw):
+        """
+        Payload → telemetric fields
+        Example Format:
+        [temp, humidity, vibration, nfc_flag, nfc_data...]
+
+        For your dairy MCDA, this becomes:
+        - energy_kwh_per_litre  ← from vibration/temp
+        - water_litre_per_litre ← from humidity transducer
+        - ghg proxy ← from thermal delta
+        """
+        if not raw:
+            return None
+
+        # Convert bytes to list
+        arr = list(raw)
+
+        parsed = {
+            "raw_bytes": arr,
+            "temperature_c": arr[0] if len(arr) > 0 else None,
+            "humidity_pct": arr[1] if len(arr) > 1 else None,
+            "vibration": arr[2] if len(arr) > 2 else None,
+            "nfc_flag": arr[3] if len(arr) > 3 else 0,
+            "nfc_payload": arr[4:] if len(arr) > 4 else []
+        }
+
+        return parsed
+
+    def to_mcda_adjustments(self):
+        """
+        Convert sensor telemetry → MCDA variable adjustments.
+        Values are soft deltas applied to plant scenario weights.
+        """
+
+        if not self.last_packet:
+            return {}
+
+        t = self.last_packet.get("temperature_c", 0)
+        h = self.last_packet.get("humidity_pct", 0)
+        vib = self.last_packet.get("vibration", 0)
+
+        return {
+            # Example: vibration implies higher energy usage
+            "energy_kwh_per_litre": vib * 0.001,
+
+            # Temperature increases cooling energy demand
+            "processing_cost_per_litre": (t - 20) * 0.0005 if t > 20 else 0,
+
+            # Humidity → higher water consumption rate
+            "water_litre_per_litre": h * 0.0003,
+
+            # Rough GHG proxy
+            "ghg_kgco2e_per_litre": max(0, (t - 18) * 0.0004)
+        }
+
 
 # =============================================================================
 # 8) APP
@@ -907,19 +1325,69 @@ def main():
     st.markdown("<div class='parallax-layer'></div>", unsafe_allow_html=True)
     st.markdown("<div class='bloom' style='top:15vh; left:20vw;'></div>", unsafe_allow_html=True)
     st.markdown("<div class='bloom' style='top:65vh; left:70vw; animation-delay:2s;'></div>", unsafe_allow_html=True)
-    st.markdown("<div class='hud-ring'></div>", unsafe_allow_html=True)
 
     # Inject holographic grid layer + particles
     st.markdown("<div class='holo-grid'></div>", unsafe_allow_html=True)
-    for i in range(18):
+    for i in range(8):
         st.markdown(f"<div class='particle' style='left:{5+i*7}vw; animation-delay:{i*0.7}s'></div>", unsafe_allow_html=True)
 
     # Optional video background (user can upload)
     vid = st.sidebar.file_uploader("Background video (optional, .mp4)", type=["mp4"])
+
+    # Performance throttle: Reject files > 100MB
+    MAX_MB = 100
+    if vid and (vid.size / (1024 * 1024) > MAX_MB):
+        st.sidebar.error(f"Video too large. Please upload a file under {MAX_MB} MB.")
+        vid = None
+
+    # Brightness slider
+    brightness = st.sidebar.slider("Background Video Brightness", 0.1, 1.0, 0.55, step=0.05)
+
+    # Fade-in effect container
+    st.markdown(
+        f"""
+        <style>
+        .background-video {{
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            min-width: 100% !important;
+            min-height: 100% !important;
+            object-fit: cover !important;
+            object-position: center center !important;
+            z-index: -9999 !important;
+            pointer-events: none !important;
+            opacity: {brightness} !important;
+            transition: opacity 1.8s ease-in-out !important;
+        }}
+
+        /* Fade-in animation */
+        .video-fade {{
+            animation: fadeInVideo 2.5s ease forwards;
+        }}
+
+        @keyframes fadeInVideo {{
+            from {{ opacity: 0; }}
+            to   {{ opacity: {brightness}; }}
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
     if vid:
         video_bytes = vid.read()
+        import base64
+        video_b64 = base64.b64encode(video_bytes).decode()
+
         st.markdown(
-            f"<video class='background-video' autoplay loop muted playsinline src='data:video/mp4;base64,{video_bytes.hex()}'></video>",
+            f"""
+            <video class='background-video video-fade' autoplay loop muted playsinline>
+                <source src='data:video/mp4;base64,{video_b64}' type='video/mp4'>
+            </video>
+            """,
             unsafe_allow_html=True
         )
 
@@ -927,13 +1395,15 @@ def main():
     toggle = st.sidebar.button("Minimize Sidebar")
     if toggle:
         st.markdown("<style> section[data-testid='stSidebar'] { width: 0 !important; opacity: 0; } </style>", unsafe_allow_html=True)
-    st.set_page_config(page_title="Irish Dairy Decision Intelligence — Full Build", layout="wide")
     cfg = load_config()
     logger.info("App start")
 
-    st.title("Irish Dairy Decision Intelligence — Full Intelligence Build")
-    st.caption("MCDA • Econometrics • Quantum • Agentic Governance • EU AI Act • OSM Leaflet")
+    st.title("Dairy Decision Intelligence System - Ireland")
+    st.caption("System Architecture, Design and Engineering by Shubhoit Bagchi | © 2025")
 
+
+
+    # ---------- LANDSCAPE ----------
     tabs = st.tabs([
         "Landscape",
         "Decision Engine",
@@ -942,35 +1412,42 @@ def main():
         "AI Governance",
         "Compliance",
         "Reports",
+        "Supply Chain",
         "System Log"
     ])
-
-    # ---------- LANDSCAPE ----------
     with tabs[0]:
-        st.subheader("Decision-Making Tools & Models (Ireland) — Consensus Landscape")
-        st.dataframe(consensus_landscape_df(), width=None, hide_index=True)
+        st.markdown("<div class='tab-clip glass-only'>", unsafe_allow_html=True)
+        st.subheader("Decision-Making Tools & Models Literature Review — Google Scholar")
+        st.dataframe(consensus_landscape_df(), width="stretch", hide_index=True)
         st.markdown("**Trends & Research Directions**")
         for t in TRENDS: st.markdown(f"- {t}")
-        st.caption("Figure 1. Overview of decision-making tools in the Irish dairy processing industry. "
-                   "Numbers in parentheses reflect consolidated citation indices from the literature snapshot.")
-
+        st.caption("Overview of decision-making tools in the Irish dairy processing industry. "
+                   "Numbers in parentheses reflect consolidated citation indices from the literature review - Google Scholar.")
+        st.markdown("</div>", unsafe_allow_html=True)
     # ---------- DECISION ENGINE ----------
     with tabs[1]:
+        st.markdown("<div class='tab-clip glass-only'>", unsafe_allow_html=True)
+
         st.subheader("1. Data")
         data_choice = st.radio("Select data source:", ["Demo synthetic plants","Upload CSV"], horizontal=True)
         if data_choice=="Demo synthetic plants":
             df_plants = create_demo_plants()
         else:
             up = st.file_uploader("Upload CSV with plant options + indicators", type=["csv"])
-            if up is None: st.stop()
+            if up is None: 
+                st.stop()
             df_plants = pd.read_csv(up, low_memory=False)
 
         missing = [c for c in INDICATORS if c not in df_plants.columns]
-        if missing: st.error(f"Missing columns: {missing}"); st.stop()
-        st.dataframe(df_plants, width=None)
+        if missing:
+            st.error(f"Missing columns: {missing}")
+            st.stop()
+
+        st.dataframe(df_plants, width="stretch")
 
         st.subheader("2. Scenario & Weights")
         scen = st.selectbox("Scenario", list(SCENARIO_WEIGHTS.keys())+["Custom"], index=2)
+
         if scen!="Custom":
             weights = {**SCENARIO_WEIGHTS[scen], **cfg.get("scenarios",{}).get(scen,{})}
             st.json(weights, expanded=False)
@@ -986,8 +1463,9 @@ def main():
         model, df_ranked, summary = engine.run_full(scenario_name, weights)
 
         score_col = f"score_{scenario_name}"
+
         st.subheader("3. Ranked Options")
-        st.dataframe(df_ranked[["option_id","plant","strategy",score_col,"county"]], width=None)
+        st.dataframe(df_ranked[["option_id","plant","strategy",score_col,"county"]], width="stretch")
         st.bar_chart(df_ranked.set_index("option_id")[score_col])
 
         st.subheader("4. Option Explanation")
@@ -997,18 +1475,61 @@ def main():
         st.subheader("5. Engine Summary")
         st.write(summary)
 
-        # stash for other tabs
+        # =======================
+        #    BLE / NFC BLOCK
+        # =======================
+        st.subheader("6. BLE/NFC Telemetry Integration")
+        st.markdown("### Real-time BLE/NFC Sensor Stream")
+
+        sensor_bridge = st.session_state.get("sensor_bridge")
+        if sensor_bridge is None:
+            sensor_bridge = BluetoothNFCBridge()
+            st.session_state["sensor_bridge"] = sensor_bridge
+
+        enable_bt = st.checkbox("Enable Bluetooth/NFC Stream")
+
+        if enable_bt:
+            sensor_bridge.enabled = True
+            st.info("Scanning for BLE/NFC packets...")
+
+            import asyncio
+            try:
+                packet = asyncio.run(sensor_bridge.scan_once())
+                if packet:
+                    st.success("Sensor packet received")
+                    st.json(packet)
+                else:
+                    st.warning("No BLE/NFC sensor detected nearby")
+            except Exception as e:
+                st.error(f"BLE scanning error: {e}")
+
+            # Apply sensor-driven adjustments
+            adjustments = sensor_bridge.to_mcda_adjustments()
+            st.markdown("**MCDA Adjustments from Sensors:**")
+            st.json(adjustments)
+
+            # Merge adjustments into scenario weights
+            for k, delta in adjustments.items():
+                if k in weights:
+                    weights[k] += delta
+
+            # Normalize
+            total = sum(weights.values())
+            if total > 0:
+                for k in weights:
+                    weights[k] /= total
+
+        # Store ranked data for other tabs
         st.session_state["df_ranked"] = df_ranked
         st.session_state["score_col"] = score_col
 
+        st.markdown("</div>", unsafe_allow_html=True)
+        
     # ---------- GEO INTELLIGENCE ----------
     with tabs[2]:
-        st.subheader("Plants / Options (Leaflet OSM)")
-        df_ranked = st.session_state.get("df_ranked", create_demo_plants())
-        score_col = st.session_state.get("score_col", "score_balanced")
-        plants_options_map(df_ranked, score_col)
+        st.markdown("<div class='tab-clip glass-only'>", unsafe_allow_html=True)
 
-        st.subheader("All Dairy Farms Network (Upload optional; demo otherwise)")
+        st.subheader("All Dairy Farms Network")
         use_demo_farms = st.checkbox("Use demo farms", value=True)
         if use_demo_farms:
             farms = create_demo_farms()
@@ -1019,16 +1540,43 @@ def main():
         counties = ["All"] + sorted(farms["county"].dropna().astype(str).unique())
         county_choice = st.selectbox("Filter by county", counties, index=0)
         farms_network_map(farms, county_choice)
+        st.session_state["farms"] = farms
 
-        with st.expander("3D Density (pydeck)"):
+        with st.expander("3D Density Heatmap of Farms"):
             df_map = farms.dropna(subset=["lat","lon"]).rename(columns={"lat":"latitude","lon":"longitude"})
             if not df_map.empty:
-                vs = pdk.ViewState(latitude=df_map["latitude"].mean(), longitude=df_map["longitude"].mean(), zoom=6, pitch=45)
-                layer = pdk.Layer("HeatmapLayer", data=df_map, get_position='[longitude, latitude]', radius_pixels=30)
+                # Use national centroid mapping to ensure the heatmap covers the full Ireland canvas
+                all_lats = (
+                    [lat for (lat, _ ) in COOP_CENTROIDS.values()] +
+                    [lat for (lat, _ ) in PROC_CENTROIDS.values()] +
+                    [lat for (lat, _ ) in PORT_CENTROIDS.values()]
+                )
+                all_lons = (
+                    [lon for (_ , lon) in COOP_CENTROIDS.values()] +
+                    [lon for (_ , lon) in PROC_CENTROIDS.values()] +
+                    [lon for (_ , lon) in PORT_CENTROIDS.values()]
+                )
+                center_lat = float(np.mean(all_lats))
+                center_lon = float(np.mean(all_lons))
+
+                vs = pdk.ViewState(
+                    latitude=center_lat,
+                    longitude=center_lon,
+                    zoom=5.8,
+                    pitch=45
+                )
+                layer = pdk.Layer(
+                    "HeatmapLayer",
+                    data=df_map,
+                    get_position='[longitude, latitude]',
+                    radius_pixels=30
+                )
                 st.pydeck_chart(pdk.Deck(initial_view_state=vs, layers=[layer]))
+        st.markdown("</div>", unsafe_allow_html=True)
 
     # ---------- QUANTUM & ECONOMETRICS ----------
     with tabs[3]:
+        st.markdown("<div class='tab-clip glass-only'>", unsafe_allow_html=True)
         st.subheader("Quantum–Econometric Pipeline")
         df_ranked = st.session_state.get("df_ranked", create_demo_plants())
 
@@ -1042,9 +1590,10 @@ def main():
 
         if dfq is None:
             st.info("Run the simulation to generate quantum–econometric outputs.")
+            st.markdown("</div>", unsafe_allow_html=True)
             st.stop()
         else:
-            st.dataframe(dfq.head(), width=None)
+            st.dataframe(dfq.head(), width="stretch")
 
         # Econometric Visuals
         charts = econometric_panels_and_graphs(dfq)
@@ -1056,48 +1605,269 @@ def main():
                 st.markdown("### Agentic Explanation")
                 st.write(st.session_state["agentic_last_output"])
 
-        # ---- SHAP Integration (Local Feature Explainability) ----
+        # ---- SHAP FULL SUITE (GLOBAL + LOCAL + INTERACTION + DEPENDENCE + CLUSTERING) ----
         if shap is not None:
-            st.subheader("SHAP Explainability — Local & Global Feature Effects")
+            st.subheader("SHAP Explainability Suite")
 
             try:
-                # Use margin_per_litre as target for explanation (example)
-                target = "margin_per_litre"
-                feature_cols = [c for c in dfq.columns
-                                if c not in ["option_id","plant","strategy","county","uncertainty_state"]
-                                and dfq[c].dtype.kind in "if"]
+                import plotly.express as px
+                # Select target
+                target = st.selectbox(
+                    "Select target variable",
+                    [c for c in dfq.columns if dfq[c].dtype.kind in "if"],
+                    index=0
+                )
 
-                X = dfq[feature_cols]
-                y = dfq[target]
+                # Feature set
+                ignore_cols = ["option_id", "plant", "strategy", "county", "uncertainty_state"]
+                feature_cols = [
+                    c for c in dfq.columns
+                    if c not in ignore_cols and dfq[c].dtype.kind in "if"
+                ]
 
-                # Basic model for SHAP explanation
-                import xgboost as xgb
-                model_shap = xgb.XGBRegressor(n_estimators=120, max_depth=3, learning_rate=0.08)
-                model_shap.fit(X, y)
+                if not feature_cols:
+                    st.warning("No numeric feature columns available for SHAP analysis.")
+                else:
+                    X = dfq[feature_cols]
+                    y = dfq[target]
 
-                explainer = shap.TreeExplainer(model_shap)
-                shap_values = explainer.shap_values(X)
+                    # Model
+                    import xgboost as xgb
+                    model_shap = xgb.XGBRegressor(
+                        n_estimators=180,
+                        max_depth=4,
+                        learning_rate=0.07,
+                        subsample=0.9,
+                        colsample_bytree=0.9,
+                    )
+                    model_shap.fit(X, y)
 
-                st.markdown("**Global Feature Importance (SHAP)**")
-                shap_fig1 = shap.plots.beeswarm(shap_values, max_display=12, show=False)
-                st.pyplot(bbox_inches="tight")
+                    # SHAP explainer
+                    explainer = shap.TreeExplainer(model_shap)
+                    explanation = explainer(X)
+                    shap_matrix = explanation.values  # (n_samples, n_features)
 
-                st.markdown("**Local Explanation for Top-Ranked Option**")
-                top_row = X.iloc[[0]]
-                shap.local = explainer.shap_values(top_row)
-                shap_fig2 = shap.plots.waterfall(explainer(top_row), show=False)
-                st.pyplot(bbox_inches="tight")
+                    # ---------------- GLOBAL IMPORTANCE: BEESWARM-STYLE (PLOTLY) ----------------
+                    st.markdown("### Global Feature Importance")
 
+                    # Build long-form DataFrame for interactive beeswarm
+                    rows = []
+                    n_samples, n_features = shap_matrix.shape
+                    for j, feat in enumerate(feature_cols):
+                        vals = shap_matrix[:, j]
+                        feat_vals = X[feat].values
+                        for i in range(n_samples):
+                            rows.append(
+                                {
+                                    "feature": feat,
+                                    "shap_value": float(vals[i]),
+                                    "feature_value": float(feat_vals[i])
+                                    if np.issubdtype(X[feat].dtype, np.number)
+                                    else None,
+                                }
+                            )
+                    df_bee = pd.DataFrame(rows)
+
+                    color_arg = "feature_value" if df_bee["feature_value"].notna().any() else None
+
+                    fig_bee = px.strip(
+                        df_bee,
+                        x="shap_value",
+                        y="feature",
+                        color=color_arg,
+                        orientation="h",
+                        title="SHAP Beeswarm (Interactive)",
+                    )
+                    fig_bee.update_layout(
+                        height=min(800, 80 * len(feature_cols) + 200),
+                        yaxis_title="Feature",
+                        xaxis_title="SHAP value",
+                    )
+                    st.plotly_chart(fig_bee, use_container_width=True)
+
+                    # ---------------- GLOBAL BAR SUMMARY (PLOTLY) ----------------
+                    st.markdown("### Global Feature Summary")
+
+                    mean_abs = np.mean(np.abs(shap_matrix), axis=0)
+                    df_bar = (
+                        pd.DataFrame(
+                            {
+                                "feature": feature_cols,
+                                "mean_abs_shap": mean_abs,
+                            }
+                        )
+                        .sort_values("mean_abs_shap", ascending=True)
+                        .reset_index(drop=True)
+                    )
+
+                    fig_bar = px.bar(
+                        df_bar,
+                        x="mean_abs_shap",
+                        y="feature",
+                        orientation="h",
+                        title="Mean |SHAP| by Feature",
+                        labels={"mean_abs_shap": "Mean |SHAP value|", "feature": "Feature"},
+                    )
+                    st.plotly_chart(fig_bar, use_container_width=True)
+
+                    # ---------------- INTERACTION VALUES (PLOTLY HEATMAP) ----------------
+                    st.markdown("### SHAP Interaction Values")
+
+                    try:
+                        interaction_vals = explainer.shap_interaction_values(X)
+
+                        # Convert the interaction values into a 2D matrix (mean absolute)
+                        interaction_matrix = np.mean(np.abs(interaction_vals), axis=0)
+
+                        fig_inter = px.imshow(
+                            interaction_matrix,
+                            x=feature_cols,
+                            y=feature_cols,
+                            color_continuous_scale="Viridis",
+                            labels=dict(color="Mean |interaction|"),
+                            title="SHAP Interaction Values (Mean Absolute — 2D Matrix)",
+                        )
+                        st.plotly_chart(fig_inter, use_container_width=True)
+                    except Exception as e:
+                        st.warning(f"Interaction heatmap skipped: {e}")
+
+                    # ---------------- DEPENDENCE PLOTS (PLOTLY SCATTER) ----------------
+                    st.markdown("### Dependence Plots")
+
+                    dep_feature = st.selectbox(
+                        "Select feature for dependence plot", feature_cols
+                    )
+                    if dep_feature in feature_cols:
+                        j_dep = feature_cols.index(dep_feature)
+                        df_dep = pd.DataFrame(
+                            {
+                                dep_feature: X[dep_feature].values,
+                                "shap_value": shap_matrix[:, j_dep],
+                            }
+                        )
+                        fig_dep = px.scatter(
+                            df_dep,
+                            x=dep_feature,
+                            y="shap_value",
+                            color=dep_feature,
+                            title=f"SHAP Dependence for {dep_feature}",
+                            labels={"shap_value": "SHAP value"},
+                        )
+                        st.plotly_chart(fig_dep, use_container_width=True)
+
+                    # ---------------- LOCAL WATERFALL (PLOTLY APPROXIMATION) ----------------
+                    st.markdown("### Local Explanation for Top-Ranked Option")
+
+                    import plotly.graph_objects as go
+
+                    top_row = X.iloc[[0]]
+                    local_exp = explainer(top_row)
+                    local_vals = pd.Series(local_exp.values[0], index=feature_cols).sort_values(
+                        ascending=False
+                    )
+                    base_val = float(
+                        local_exp.base_values[0]
+                        if np.size(local_exp.base_values) > 0
+                        else 0.0
+                    )
+
+                    fig_wf = go.Figure()
+
+                    fig_wf.add_trace(
+                        go.Waterfall(
+                            name="SHAP",
+                            orientation="v",
+                            x=local_vals.index.tolist(),
+                            measure=["relative"] * len(local_vals),
+                            y=local_vals.values,
+                        )
+                    )
+                    fig_wf.update_layout(
+                        title="Local SHAP Waterfall (Approximate, Plotly)",
+                        showlegend=False,
+                        xaxis_title="Feature",
+                        yaxis_title="Contribution to prediction",
+                    )
+                    st.plotly_chart(fig_wf, use_container_width=True)
+
+                    # ---------------- CLUSTER MAP (INTERACTIVE DENDROGRAM) ----------------
+                    st.markdown("### SHAP Feature Cluster Map (Dendrogram)")
+
+                    try:
+                        from scipy.cluster.hierarchy import linkage
+                        from plotly.figure_factory import create_dendrogram
+
+                        cluster_matrix = shap_matrix  # 2D [samples x features]
+
+                        def _linkagefun(x):
+                            return linkage(x, method="ward")
+
+                        fig_d = create_dendrogram(
+                            cluster_matrix.T,
+                            labels=feature_cols,
+                            orientation="bottom",
+                            linkagefun=_linkagefun,
+                        )
+                        fig_d.update_layout(
+                            width=900,
+                            height=500,
+                            title="Feature Cluster Map (Ward Linkage)",
+                        )
+                        st.plotly_chart(fig_d, use_container_width=True)
+                    except Exception as e:
+                        st.warning(f"Cluster map skipped: {e}")
+
+                    # ---------------- LOCAL FORCE VIEW / CONTRIBUTION TABLE ----------------
+                    st.markdown("### Local SHAP Contribution Table")
+
+                    idx_max = len(X) - 1
+                    row_idx = st.number_input(
+                        "Select row index for local SHAP explanation",
+                        min_value=0,
+                        max_value=int(idx_max),
+                        value=0,
+                        step=1,
+                    )
+
+                    try:
+                        local_row = X.iloc[[int(row_idx)]]
+                        local_exp2 = explainer(local_row)
+                        local_vals2 = pd.Series(
+                            local_exp2.values[0], index=feature_cols
+                        )
+
+                        contrib_df = (
+                            pd.DataFrame(
+                                {
+                                    "feature": feature_cols,
+                                    "shap_value": local_vals2.values,
+                                }
+                            )
+                            .sort_values("shap_value", ascending=False)
+                            .reset_index(drop=True)
+                        )
+
+                        st.write("Top positive contributors:")
+                        st.dataframe(contrib_df.head(5), width="stretch")
+
+                        st.write("Top negative contributors:")
+                        st.dataframe(
+                            contrib_df.tail(5).sort_values("shap_value"),
+                            width="stretch",
+                        )
+                    except Exception as e:
+                        st.warning(f"Local SHAP contribution view skipped: {e}")
             except Exception as e:
-                st.warning(f"SHAP failed to compute: {e}")
+                st.warning(f"SHAP explainability suite failed: {e}")
         else:
-            st.info("Install SHAP to enable explainability (pip install shap).")
+            st.info("Install SHAP to enable the full explainability suite (pip install shap).")
 
         with st.expander("Panel OLS (placeholder)"):
             if PanelOLS is None:
                 st.info("Install `linearmodels` to enable Panel OLS with real panel data.")
             else:
                 st.info("Wire your true panel dataset (county × year) here and estimate PanelOLS with FE/RE as needed.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
     # ---------- AI GOVERNANCE ----------
     with tabs[4]:
@@ -1108,6 +1878,16 @@ def main():
         ke.ingest(str(df_ranked.describe()), tag="stats")
         ke.ingest("EU AI Act, Data Act, GDPR, Cybersecurity Act context ingested for dairy AI systems.", tag="regulation")
         ke.ingest("Irish dairy processing: emissions, circular supply chains, resource efficiency, water and energy usage.", tag="sustainability")
+
+        # Ingest quantum and supply-chain data into KnowledgeEngine
+        dfq_ke = st.session_state.get("dfq")
+        if dfq_ke is not None and isinstance(dfq_ke, pd.DataFrame) and not dfq_ke.empty:
+            ke.ingest("Quantum–econometric summary:\n" + dfq_ke.describe(include='all').to_string(), tag="quantum")
+
+        routes_ke = st.session_state.get("routes_df")
+        agg_ke = st.session_state.get("agg_df")
+        if agg_ke is not None and isinstance(agg_ke, pd.DataFrame) and not agg_ke.empty:
+            ke.ingest("Supply-chain aggregates (county-level KPIs):\n" + agg_ke.to_string(index=False), tag="supply_chain")
 
         teacher = RLTeacher(min_score=cfg["rl_teacher"]["min_score"])
         advisor = RLAdvisor()
@@ -1141,13 +1921,105 @@ def main():
                 if shap is None:
                     st.info("Install SHAP to enable local feature explanations for econometric models.")
 
+        # --- AI-driven data querying ---
+        with st.expander("AI‑driven natural language querying on live metrics"):
+            q_data = st.text_input(
+                "Ask a question about plant performance, quantum outputs or supply-chain KPIs",
+                "",
+                key="ke_data_query",
+            )
+            if st.button("Ask data question"):
+                if q_data.strip():
+                    ans = ke.query(q_data)
+                    st.markdown("**Data agent answer**")
+                    st.write(ans)
+                else:
+                    st.info("Enter a question above before querying.")
+
+        # --- Real-time agentic workers ---
+        with st.expander("Real‑time agentic workers (multi-loop decision agents)"):
+            worker_prompt = st.text_area(
+                "High-level decision brief for agentic workers",
+                "Stress test Irish dairy export routes under climate and fuel-price shocks while respecting EU AI Act constraints.",
+                key="agent_worker_prompt",
+            )
+            n_workers = st.slider("Number of workers", 2, 5, 3, 1, key="agent_worker_count")
+
+            if st.button("Run agentic workers"):
+                if not worker_prompt.strip():
+                    st.info("Provide a brief for the workers first.")
+                else:
+                    roles = ["Profitability", "Climate risk", "Resilience", "Regulation", "Farmer impact"]
+                    worker_outputs = []
+
+                    for i in range(n_workers):
+                        role = roles[i % len(roles)]
+                        if client:
+                            try:
+                                r = client.chat.completions.create(
+                                    model="gpt-4o-mini",
+                                    messages=[
+                                        {
+                                            "role": "system",
+                                            "content": f"You are Agent {i+1}, specialised in {role} analysis for Irish dairy supply chains.",
+                                        },
+                                        {
+                                            "role": "user",
+                                            "content": worker_prompt,
+                                        },
+                                    ],
+                                )
+                                txt = r.choices[0].message.content
+                            except Exception as e:
+                                txt = f"[Worker {i+1} error: {e}]"
+                        else:
+                            txt = f"[Worker {i+1} stub output focused on {role}] {worker_prompt}"
+
+                        score = teacher.audit(worker_prompt, txt)
+                        worker_outputs.append((role, txt, score))
+
+                        st.markdown(f"#### Worker {i+1} — {role} (score {score:.2f})")
+                        st.write(txt)
+
+                    if worker_outputs:
+                        avg_score = sum(s for _, _, s in worker_outputs) / len(worker_outputs)
+                        st.markdown(f"**Ensemble worker score:** {avg_score:.2f}")
+
+                        if client:
+                            try:
+                                concat = "\n\n".join(
+                                    f"Worker {i+1} ({role}, score {score:.2f}):\n{txt}"
+                                    for i, (role, txt, score) in enumerate(worker_outputs)
+                                )
+                                r = client.chat.completions.create(
+                                    model="gpt-4o-mini",
+                                    messages=[
+                                        {
+                                            "role": "system",
+                                            "content": "You are an ensemble supervisor summarising multiple agents into one actionable recommendation.",
+                                        },
+                                        {
+                                            "role": "user",
+                                            "content": concat,
+                                        },
+                                    ],
+                                )
+                                sup = r.choices[0].message.content
+                            except Exception as e:
+                                sup = f"[Supervisor error: {e}]"
+                        else:
+                            sup = "[Supervisor stub] Aggregate the above workers' views into one recommendation."
+
+                        st.markdown("### Supervisor consensus recommendation")
+                        st.write(sup)
+
         with st.expander("EU Regulatory API Feeds"):
             st.write("Eurostat sample GDP feed:", eurostat_api())
             st.write("EU AI Act legal text feed:", eu_act_api())
 
     # ---------- COMPLIANCE ----------
     with tabs[5]:
-        st.subheader("EU Regulatory Framework — Alignment View")
+        st.subheader("EU Regulatory Framework — Alignment Status")
         regs = [
             {"Regulation": "EU AI Act", "Scope": "High-risk AI systems in agri/food", "Focus": "Transparency, risk mgmt, human oversight", "Status": "Conceptually integrated"},
             {"Regulation": "Data Governance Act", "Scope": "Data intermediaries, reuse of public-sector data", "Focus": "Data sharing & stewardship", "Status": "Conceptually integrated"},
@@ -1155,7 +2027,7 @@ def main():
             {"Regulation": "GDPR", "Scope": "Personal data", "Focus": "Privacy, consent, rights", "Status": "No personal data ingested in demo"},
             {"Regulation": "Cybersecurity Act", "Scope": "ICT products/services", "Focus": "Security certification", "Status": "Out-of-scope (infrastructure)"},
         ]
-        st.dataframe(pd.DataFrame(regs), width=None, hide_index=True)
+        st.dataframe(pd.DataFrame(regs), width="stretch", hide_index=True)
         st.markdown(
             "- **Transparency**: MCDA + econometric pipeline and AI outputs are visible in the UI.\n"
             "- **Risk Management**: RL-Teacher audits, scenario simulations, uncertainty states.\n"
@@ -1175,9 +2047,127 @@ def main():
                 st.download_button("Download PDF", data=pdf, file_name="dairy_decision_report.pdf", mime="application/pdf")
             else:
                 st.info("Install `reportlab` to enable PDF export.")
+        # ---------- SUPPLY CHAIN ----------
+    with tabs[7]:
+        st.markdown("<div class='tab-clip glass-only'>", unsafe_allow_html=True)
+        import plotly.express as px
+        st.subheader("Supply Chain — Farm \u2192 Co-op \u2192 Processor \u2192 Port")
+
+        df_ranked = st.session_state.get("df_ranked", create_demo_plants())
+        farms = st.session_state.get("farms", create_demo_farms())
+
+        routes_df, agg_df = supply_chain_metrics(farms)
+        st.session_state["routes_df"] = routes_df
+        st.session_state["agg_df"] = agg_df
+
+        if agg_df.empty:
+            st.info("No valid farm records to compute supply-chain metrics.")
+        else:
+            st.markdown("**County-level Supply Chain KPIs (Daily)**")
+            st.dataframe(agg_df, width="stretch")
+
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.metric(
+                    "Total daily milk volume (L)",
+                    f"{int(agg_df['milk_yield_l_per_day'].sum()):,}"
+                )
+            with c2:
+                st.metric(
+                    "Total route distance (km/day)",
+                    f"{int(agg_df['total_route_km'].sum()):,}"
+                )
+            with c3:
+                st.metric(
+                    "Total transport CO\u2082 (kg/day)",
+                    f"{int(agg_df['route_emissions_kgCO2e'].sum()):,}"
+                )
+
+            st.markdown("**Route Distance by County (km/day)**")
+            fig_km = px.bar(
+                agg_df,
+                x="county",
+                y="total_route_km",
+                title="Total Route Distance by County (km/day)",
+            )
+            st.plotly_chart(fig_km, use_container_width=True)
+
+            st.markdown("**Transport CO\u2082 by County (kg/day)**")
+            fig_em = px.bar(
+                agg_df,
+                x="county",
+                y="route_emissions_kgCO2e",
+                title="Transport CO\u2082 by County (kg/day)",
+            )
+            st.plotly_chart(fig_em, use_container_width=True)
+
+            st.markdown("### Supply Chain Sankey")
+
+            import plotly.graph_objects as go
+
+            try:
+                counties = agg_df["county"].astype(str).tolist()
+                volumes = agg_df["milk_yield_l_per_day"].astype(float).tolist()
+
+                # Nodes: one per county + 3 aggregated hubs
+                node_labels = counties + ["Co-op hubs", "Processors", "Export ports"]
+                idx_coop = len(counties)
+                idx_proc = len(counties) + 1
+                idx_port = len(counties) + 2
+
+                sources = []
+                targets = []
+                values = []
+
+                for i, vol in enumerate(volumes):
+                    # County -> Co-op, Co-op -> Processor, Processor -> Port
+                    sources.extend([i, idx_coop, idx_proc])
+                    targets.extend([idx_coop, idx_proc, idx_port])
+                    values.extend([vol, vol, vol])
+
+                fig_s = go.Figure(
+                    data=[
+                        go.Sankey(
+                            arrangement="snap",
+                            valueformat=",",
+                            valuesuffix=" L/day",
+                            node=dict(
+                                pad=24,
+                                thickness=18,
+                                line=dict(color="rgba(0,255,255,0.8)", width=1),
+                                label=node_labels,
+                                color=["rgba(0,180,255,0.85)"] * len(node_labels),
+                                hovertemplate="%{label}<extra></extra>",
+                            ),
+                            link=dict(
+                                source=sources,
+                                target=targets,
+                                value=values,
+                                color="rgba(0,200,255,0.35)",
+                                hovertemplate="Flow: %{value:.0f} L/day<extra></extra>",
+                            ),
+                        )
+                    ]
+                )
+
+                fig_s.update_layout(
+                    title="Farm → Co-op → Processor → Port — Holographic Flow",
+                    font=dict(color="#FFFFFF"),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    height=520,
+                )
+
+                st.plotly_chart(fig_s, use_container_width=True)
+            except Exception as e:
+                st.warning(f"Holographic Sankey failed: {e}")
+
+            with st.expander("Route-level table (sample)"):
+                st.dataframe(routes_df.head(500), width=None)
+        st.markdown("</div>", unsafe_allow_html=True)
 
     # ---------- SYSTEM LOG ----------
-    with tabs[7]:
+    with tabs[8]:
         st.subheader("System Log")
         log_path = Path("dairy_decision_v2.log")
         if log_path.exists():
@@ -1256,3 +2246,4 @@ def eu_act_api(celex="52021PC0206"):
 
 if __name__ == "__main__":
     main()
+    st.markdown("</div>", unsafe_allow_html=True)
