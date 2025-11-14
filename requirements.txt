@@ -13,6 +13,7 @@ matplotlib
 requests
 beautifulsoup4
 python-dotenv
+loguru
 
 bleak              # BLE scanning
 nfcpy              # NFC fallback
